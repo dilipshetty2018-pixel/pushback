@@ -28,6 +28,13 @@ RAMP_RATE = 9 #used for ramping (lower = smoother, higher = jumpy)
 
 BRAKE_MODE = False  # False = coast, True = brake
 
+# Solenoid state tracking
+loader_piston_extended = False
+a_button_last = False
+
+descorer_piston_extended = False
+b_button_last = False
+
 #constants defined above
 
 brain = Brain()
@@ -42,8 +49,9 @@ right_motor2 = Motor(Ports.PORT20, GearSetting.RATIO_18_1, True)
 input_motor = Motor(Ports.PORT3, False)  # reversed flag flipped so spin directions are swapped
 output_motor = Motor(Ports.PORT13, False)
 
-# Pneumatics solenoid (3-wire DigitalOut attached to Brain 3-wire port A)
-solenoid = DigitalOut(brain.three_wire_port.a)
+# Pneumatics solenoids (3-wire DigitalOut attached to Brain 3-wire ports)
+loader_piston_solenoid = DigitalOut(brain.three_wire_port.a)
+descorer_piston_solenoid = DigitalOut(brain.three_wire_port.b)
 """
     wheelTravel = the distance the robot travels with one full rotation of the wheels
     trackWidth = the distance between the left and right wheels (we are using for turns, and curves)
@@ -124,11 +132,8 @@ def autonomous():
 
 
 def driver_control():
-    global CURRENT_LM_POWER, CURRENT_RM_POWER, BRAKE_MODE #since we are modifying these variables (we will need to define them as global)
-
-    # edge-detect for buttons that should trigger on press
-    lastA = False
-    lastB = False
+    global CURRENT_LM_POWER, CURRENT_RM_POWER, BRAKE_MODE, RAMP_RATE
+    global loader_piston_extended, a_button_last, descorer_piston_extended, b_button_last
 
     while True:
         left_power = controller.axis2.position()
@@ -156,14 +161,25 @@ def driver_control():
             controller.screen.print("Brake Mode: ", BRAKE_MODE)
             wait(200, MSEC)  #debounce delay
 
-        # Solenoid control (press A to set ON, press B to set OFF)
-        a = controller.buttonA.pressing()
-        b = controller.buttonB.pressing()
-        if a and not lastA:
-            solenoid.set(True)
-        if b and not lastB:
-            solenoid.set(False)
-        lastA, lastB = a, b
+        # Loader Piston control
+        a_button_pressed = controller.buttonA.pressing()
+        if a_button_pressed and not a_button_last:
+            loader_piston_extended = not loader_piston_extended
+            if loader_piston_extended:
+                loader_piston_solenoid.set(True)
+            else:
+                loader_piston_solenoid.set(False)
+        a_button_last = a_button_pressed
+
+        # Descorer Piston control
+        b_button_pressed = controller.buttonB.pressing()
+        if b_button_pressed and not b_button_last:
+            descorer_piston_extended = not descorer_piston_extended
+            if descorer_piston_extended:
+                descorer_piston_solenoid.set(True)
+            else:
+                descorer_piston_solenoid.set(False)
+        b_button_last = b_button_pressed
 
         # Ramping logic below
         # smoothly ramp left motor power toward target
