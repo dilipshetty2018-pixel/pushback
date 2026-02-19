@@ -228,6 +228,9 @@ def driver_control():
             input_motor.stop() #stop input motor if neither button is pressed
 
         if controller.buttonL1.pressing():
+            if not descorer_piston_extended:
+                descorer_piston_extended = True
+                descorer_piston_solenoid.set(True)
             output_motor.spin(FORWARD, 100, PERCENT) #output motor forward
         elif controller.buttonL2.pressing():
             output_motor.spin(REVERSE, 100, PERCENT) #output motor reverse
@@ -236,6 +239,9 @@ def driver_control():
 
         # Automatic intake/output
         if controller.buttonDown.pressing():
+            if not descorer_piston_extended:
+                descorer_piston_extended = True
+                descorer_piston_solenoid.set(True)
             input_motor.spin(FORWARD, 100, PERCENT)
             output_motor.spin(FORWARD, 100, PERCENT)
         elif controller.buttonUp.pressing():  
